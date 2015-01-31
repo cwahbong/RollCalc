@@ -1,6 +1,8 @@
 #ifndef ROLL_CALC__ROLL_CALC_PANEL_H
 #define ROLL_CALC__ROLL_CALC_PANEL_H
 
+#include <memory>
+
 #include <wx/button.h>
 #include <wx/panel.h>
 #include <wx/stattext.h>
@@ -16,6 +18,10 @@ public:
                 long style = 0,
                 const wxString & name = wxPanelNameStr);
   virtual ~RollCalcPanel();
+
+private:
+  struct Member;
+  std::unique_ptr<Member> _;
 };
 
 } // namespace roll_calc

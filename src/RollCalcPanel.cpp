@@ -18,44 +18,109 @@ namespace roll_calc {
 namespace {
 
 const int ROLL_CALC_BORDER = 10;
+const int ROLL_CALC_TEXT_CTRL_WIDTH = 40;
 
-enum {
-  ROLL_CALC_PANEL_CALC_BUTTON = wxID_HIGHEST + 1,
-  ROLL_CALC_PANEL_D4_SPIN_CTRL,
-  ROLL_CALC_PANEL_D6_SPIN_CTRL,
-  ROLL_CALC_PANEL_D8_SPIN_CTRL,
-  ROLL_CALC_PANEL_D10_SPIN_CTRL,
-  ROLL_CALC_PANEL_D12_SPIN_CTRL,
-  ROLL_CALC_PANEL_OPERATOR_PANEL,
-  ROLL_CALC_PANEL_DEST_TEXT_CTRL,
-  ROLL_CALC_PANEL_PROB_TEXT,
+} // namespace
+
+struct RollCalcPanel::Member {
+  RollCalcOperatorPanel * operatorPanel;
+  wxTextCtrl * destTextCtrl;
+  wxStaticText * probStaticText;
+  std::map<int, wxSpinCtrl *> diceSpinCtrls;
+
+  wxButton * initCalcButton(wxWindow * parent, wxWindowID id);
+  void OnCalcButton(wxCommandEvent & event);
+
+  RollCalcOperatorPanel * initOperatorPanel(wxWindow * parent, wxWindowID id);
+  wxStaticText * initProbStaticText(wxWindow * parent, wxWindowID id);
+
+  wxPanel * initDicePanel(wxWindow * parent, wxWindowID id, int dice);
+  wxPanel * initAllDicePanel(wxWindow * parent, wxWindowID id);
+  wxPanel * initCmpPanel(wxWindow * parent, wxWindowID id);
+  wxPanel * initCalcProbPanel(wxWindow * parent, wxWindowID id);
+
+  Member()
+  : operatorPanel{NULL},
+    destTextCtrl{NULL},
+    probStaticText{NULL}
+  {/* Empty. */}
 };
 
-wxWindowID
-GetDieSpinCtrlId(int die)
+wxButton *
+RollCalcPanel::Member::initCalcButton(
+    wxWindow * parent,
+    wxWindowID id)
 {
-  const std::unordered_map<int, wxWindowID> umap = {
-    {4, ROLL_CALC_PANEL_D4_SPIN_CTRL},
-    {6, ROLL_CALC_PANEL_D6_SPIN_CTRL},
-    {8, ROLL_CALC_PANEL_D8_SPIN_CTRL},
-    {10, ROLL_CALC_PANEL_D10_SPIN_CTRL},
-    {12, ROLL_CALC_PANEL_D12_SPIN_CTRL},
-  };
+  auto * button = new wxButton(parent, id, "Calc");
+  button->Bind(wxEVT_BUTTON, &RollCalcPanel::Member::OnCalcButton, this);
+  return button;
+}
 
-  return umap.at(die);
+void
+RollCalcPanel::Member::OnCalcButton(
+    wxCommandEvent & /* event */)
+{
+  const int d4 = diceSpinCtrls[4]->GetValue();
+  const int d6 = diceSpinCtrls[6]->GetValue();
+  const int d8 = diceSpinCtrls[8]->GetValue();
+  const int d10 = diceSpinCtrls[10]->GetValue();
+  const int d12 = diceSpinCtrls[12]->GetValue();
+  const std::function<bool (int, int)> op = operatorPanel->GetSelectedOperator();
+  const int dest = wxAtoi(destTextCtrl->GetValue());
+
+  const Dice<int, size_t, double> dice = {
+    {regular_die<int, double>(4), d4},
+    {regular_die<int, double>(6), d6},
+    {regular_die<int, double>(8), d8},
+    {regular_die<int, double>(10), d10},
+    {regular_die<int, double>(12), d12},
+  };
+  const double prob = probability(
+    dice,
+    [op, dest](int rolled){
+      return op(rolled, dest);
+    }
+  );
+
+  probStaticText->SetLabel(wxString::Format("%.2f%%", prob));
+}
+
+RollCalcOperatorPanel *
+RollCalcPanel::Member::initOperatorPanel(
+    wxWindow * parent,
+    wxWindowID id)
+{
+  return new RollCalcOperatorPanel(parent, id);
+}
+
+wxStaticText *
+RollCalcPanel::Member::initProbStaticText(
+    wxWindow * parent,
+    wxWindowID id)
+{
+  return new wxStaticText(parent, id, "\%");
 }
 
 wxPanel *
-newDiePanel(wxWindow * parent, wxWindowID id, int die)
+RollCalcPanel::Member::initDicePanel(
+  wxWindow * parent,
+  wxWindowID id,
+  int dice)
 {
   auto * panel = new wxPanel(parent, id);
-  panel->SetBackgroundColour(wxColor(255,255,0));
   auto * topSizer = new wxGridSizer(1);
   {
     auto * sizer = new wxGridSizer(2);
     {
-      sizer->Add(new wxSpinCtrl(panel, GetDieSpinCtrlId(die)), 0, wxALIGN_CENTER);
-      sizer->Add(new wxStaticText(panel, wxID_ANY, wxString::Format("d%d", die)), 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+      auto * diceSpinCtrl = new wxSpinCtrl(panel, wxID_ANY);
+      diceSpinCtrl->SetMinSize(wxSize(ROLL_CALC_TEXT_CTRL_WIDTH, -1));
+      diceSpinCtrls[dice] = diceSpinCtrl;
+      sizer->Add(diceSpinCtrl, 0, wxALIGN_CENTER);
+
+      sizer->Add(
+          new wxStaticText(panel, wxID_ANY, wxString::Format("d%d", dice)),
+          0,
+          wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
     }
     topSizer->Add(sizer, 0, wxALIGN_CENTER);
   }
@@ -64,14 +129,16 @@ newDiePanel(wxWindow * parent, wxWindowID id, int die)
 }
 
 wxPanel *
-newDicePanel(wxWindow * parent, wxWindowID id)
+RollCalcPanel::Member::initAllDicePanel(
+    wxWindow * parent,
+    wxWindowID id)
 {
 
   auto * panel = new wxPanel(parent, id);
   auto * sizer = new wxBoxSizer(wxVERTICAL);
 
-  for (const auto & die: {4, 6, 8, 10, 12}) {
-    sizer->Add(newDiePanel(panel, wxID_ANY, die), 1, wxEXPAND);
+  for (const auto & dice: {4, 6, 8, 10, 12}) {
+    sizer->Add(initDicePanel(panel, wxID_ANY, dice), 1, wxEXPAND);
   }
 
   panel->SetSizerAndFit(sizer);
@@ -79,104 +146,71 @@ newDicePanel(wxWindow * parent, wxWindowID id)
 }
 
 wxPanel *
-newCmpPanel(wxWindow * parent, wxWindowID id)
+RollCalcPanel::Member::initCmpPanel(
+    wxWindow * parent,
+    wxWindowID id)
 {
   auto * panel = new wxPanel(parent, id);
-  panel->SetBackgroundColour(wxColor(255,0,255));
   auto * sizer = new wxBoxSizer(wxHORIZONTAL);
-  {
-    sizer->Add(new RollCalcOperatorPanel(panel, ROLL_CALC_PANEL_OPERATOR_PANEL), 0, wxALIGN_CENTER);
 
-    auto * destTextCtrl = new wxTextCtrl(panel, ROLL_CALC_PANEL_DEST_TEXT_CTRL);
-    sizer->Add(destTextCtrl, 0, wxALIGN_CENTER);
-  }
-  panel->SetSizer(sizer);
+  operatorPanel = initOperatorPanel(panel, wxID_ANY);
+  sizer->Add(operatorPanel, 0, wxALIGN_CENTER);
+
+  destTextCtrl = new wxTextCtrl(panel, wxID_ANY);
+  destTextCtrl->SetMinSize(wxSize(ROLL_CALC_TEXT_CTRL_WIDTH, -1));
+  sizer->Add(destTextCtrl, 0, wxALIGN_CENTER);
+
+  panel->SetSizerAndFit(sizer);
   return panel;
 }
 
 wxPanel *
-newCalcProbPanel(wxWindow * parent, wxWindowID id)
+RollCalcPanel::Member::initCalcProbPanel(
+    wxWindow * parent,
+    wxWindowID id)
 {
   auto * panel = new wxPanel(parent, id);
-  panel->SetBackgroundColour(wxColor(0,255,255));
-  {
-    auto * sizer = new wxBoxSizer(wxVERTICAL);
-    {
-      sizer->Add(new wxButton(panel, ROLL_CALC_PANEL_CALC_BUTTON, "Calc"), 0, wxALIGN_CENTER);
-      sizer->AddStretchSpacer();
-      sizer->Add(new wxStaticText(panel, ROLL_CALC_PANEL_PROB_TEXT, "%"), 0, wxALIGN_CENTER);
-    }
-    panel->SetSizerAndFit(sizer);
-  }
+  auto * sizer = new wxBoxSizer(wxVERTICAL);
+
+  sizer->Add(initCalcButton(panel, wxID_ANY), 0, wxALIGN_CENTER);
+
+  sizer->AddStretchSpacer();
+
+  probStaticText = initProbStaticText(panel, wxID_ANY);
+  sizer->Add(probStaticText, 0, wxALIGN_CENTER);
+
+  panel->SetSizerAndFit(sizer);
   return panel;
 }
 
-void
-initLayout(wxWindow * window)
-{
-  auto * topLevelSizer = new wxGridSizer(3);
-  {
-    topLevelSizer->Add(newDicePanel(window, wxID_ANY),
-        1,
-        wxEXPAND | wxALL,
-        ROLL_CALC_BORDER);
-    topLevelSizer->Add(newCmpPanel(window, wxID_ANY),
-        1,
-        wxEXPAND | wxALL,
-        ROLL_CALC_BORDER);
-    topLevelSizer->Add(newCalcProbPanel(window, wxID_ANY),
-        1,
-        wxEXPAND | wxALL,
-        ROLL_CALC_BORDER);
-  }
-  window->SetSizerAndFit(topLevelSizer);
-}
-
-void
-bindEvents(wxWindow * window)
-{
-  window->Bind(
-      wxEVT_BUTTON,
-      [window](wxCommandEvent & /* event */){
-        auto * text = FindWxWindowById<wxStaticText *>(ROLL_CALC_PANEL_PROB_TEXT, window);
-        if (text) {
-          // call calc_prob and set the text label;
-          // XXX check NULL return value by FindWxWindowByID
-          int d4 = FindWxWindowById<wxSpinCtrl *>(ROLL_CALC_PANEL_D4_SPIN_CTRL, window)->GetValue();
-          int d6 = FindWxWindowById<wxSpinCtrl *>(ROLL_CALC_PANEL_D6_SPIN_CTRL, window)->GetValue();
-          int d8 = FindWxWindowById<wxSpinCtrl *>(ROLL_CALC_PANEL_D8_SPIN_CTRL, window)->GetValue();
-          int d10 = FindWxWindowById<wxSpinCtrl *>(ROLL_CALC_PANEL_D10_SPIN_CTRL, window)->GetValue();
-          int d12 = FindWxWindowById<wxSpinCtrl *>(ROLL_CALC_PANEL_D12_SPIN_CTRL, window)->GetValue();
-          std::function<bool (int, int)> op = FindWxWindowById<RollCalcOperatorPanel *>(ROLL_CALC_PANEL_OPERATOR_PANEL, window)->GetSelectedOperator();
-
-          wxString destStr = FindWxWindowById<wxTextCtrl *>(ROLL_CALC_PANEL_DEST_TEXT_CTRL, window)->GetValue();
-          int dest = wxAtoi(destStr);
-
-          double prob = Prob(d4, d6, d8, d10, d12, [op, dest](int rolled){ return op(rolled, dest); });
-
-          text->SetLabel(wxString::Format("%d + %d + %d + %d + %d = %.2f%%", d4, d6, d8, d10, d12, prob));
-        } else {
-          // ERROR HANDLING
-        }
-      },
-      ROLL_CALC_PANEL_CALC_BUTTON
-  );
-}
-
-} // namespace
-
 RollCalcPanel::RollCalcPanel(
-  wxWindow * parent,
-  wxWindowID id,
-  const wxPoint & pos,
-  const wxSize & size,
-  long style,
-  const wxString & name
-)
-: wxPanel{parent, id, pos, size, style, name}
+    wxWindow * parent,
+    wxWindowID id,
+    const wxPoint & pos,
+    const wxSize & size,
+    long style,
+    const wxString & name)
+: wxPanel{parent, id, pos, size, style, name},
+  _{new Member{}}
 {
-  initLayout(this);
-  bindEvents(this);
+  auto * topLevelSizer = new wxBoxSizer(wxHORIZONTAL);
+
+  topLevelSizer->Add(_->initAllDicePanel(this, wxID_ANY),
+      0,
+      wxEXPAND | wxALL,
+      ROLL_CALC_BORDER);
+
+  topLevelSizer->Add(_->initCmpPanel(this, wxID_ANY),
+      0,
+      wxEXPAND | wxALL,
+      ROLL_CALC_BORDER);
+
+  topLevelSizer->Add(_->initCalcProbPanel(this, wxID_ANY),
+      0,
+      wxEXPAND | wxALL,
+      ROLL_CALC_BORDER);
+
+  SetSizerAndFit(topLevelSizer);
 }
 
 RollCalcPanel::~RollCalcPanel()

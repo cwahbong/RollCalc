@@ -1,6 +1,7 @@
 #include "RollCalcOperatorPanel.h"
 
 #include <unordered_map>
+#include <vector>
 
 #include <wx/bitmap.h>
 #include <wx/tglbtn.h>
@@ -54,6 +55,10 @@ GetOperator(wxWindowID id)
 struct RollCalcOperatorPanel::Member {
   wxToggleButton * selected;
 
+  Member()
+  : selected{NULL}
+  {/* Empty. */}
+
   wxToggleButton *
   newOperatorButton(wxWindow * parent, wxWindowID id)
   {
@@ -82,27 +87,23 @@ RollCalcOperatorPanel::RollCalcOperatorPanel(
   const wxString & name
 )
 : wxPanel{parent, id, pos, size, style, name},
-  _{new Member{NULL}}
+  _{new Member{}}
 {
+  const std::vector<wxWindowID> buttonIds = {
+    ROLL_CALC_OPERATOR_PANEL_GT,
+    ROLL_CALC_OPERATOR_PANEL_GE,
+    ROLL_CALC_OPERATOR_PANEL_EQ,
+    ROLL_CALC_OPERATOR_PANEL_NE,
+    ROLL_CALC_OPERATOR_PANEL_LT,
+    ROLL_CALC_OPERATOR_PANEL_LE,
+  };
+
   auto * sizer = new wxGridSizer(2);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_GT),
-      wxALIGN_CENTER);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_GE),
-      wxALIGN_CENTER);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_EQ),
-      wxALIGN_CENTER);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_NE),
-      wxALIGN_CENTER);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_LT),
-      wxALIGN_CENTER);
-  sizer->Add(
-      _->newOperatorButton(this, ROLL_CALC_OPERATOR_PANEL_LE),
-      wxALIGN_CENTER);
+  for (auto buttonId: buttonIds) {
+    sizer->Add(
+        _->newOperatorButton(this, buttonId),
+        wxALIGN_CENTER);
+  }
   SetSizerAndFit(sizer);
 }
 
