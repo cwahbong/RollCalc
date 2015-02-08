@@ -1,8 +1,9 @@
 #include "RollCalcPanel.h"
 
-#include "RollCalcFunc.h"
+#include "DicePanel.h"
+#include "Func.h"
 #include "RollCalcOperatorPanel.h"
-#include "RollCalcUtil.h"
+#include "Util.h"
 
 #include <unordered_map>
 
@@ -34,7 +35,6 @@ struct RollCalcPanel::Member {
   RollCalcOperatorPanel * initOperatorPanel(wxWindow * parent, wxWindowID id);
   wxStaticText * initProbStaticText(wxWindow * parent, wxWindowID id);
 
-  wxPanel * initDicePanel(wxWindow * parent, wxWindowID id, int dice);
   wxPanel * initAllDicePanel(wxWindow * parent, wxWindowID id);
   wxPanel * initCmpPanel(wxWindow * parent, wxWindowID id);
   wxPanel * initCalcProbPanel(wxWindow * parent, wxWindowID id);
@@ -102,33 +102,6 @@ RollCalcPanel::Member::initProbStaticText(
 }
 
 wxPanel *
-RollCalcPanel::Member::initDicePanel(
-  wxWindow * parent,
-  wxWindowID id,
-  int dice)
-{
-  auto * panel = new wxPanel(parent, id);
-  auto * topSizer = new wxGridSizer(1);
-  {
-    auto * sizer = new wxGridSizer(2);
-    {
-      auto * diceSpinCtrl = new wxSpinCtrl(panel, wxID_ANY);
-      diceSpinCtrl->SetMinSize(wxSize(ROLL_CALC_TEXT_CTRL_WIDTH, -1));
-      diceSpinCtrls[dice] = diceSpinCtrl;
-      sizer->Add(diceSpinCtrl, 0, wxALIGN_CENTER);
-
-      sizer->Add(
-          new wxStaticText(panel, wxID_ANY, wxString::Format("d%d", dice)),
-          0,
-          wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
-    }
-    topSizer->Add(sizer, 0, wxALIGN_CENTER);
-  }
-  panel->SetSizerAndFit(topSizer);
-  return panel;
-}
-
-wxPanel *
 RollCalcPanel::Member::initAllDicePanel(
     wxWindow * parent,
     wxWindowID id)
@@ -138,7 +111,7 @@ RollCalcPanel::Member::initAllDicePanel(
   auto * sizer = new wxBoxSizer(wxVERTICAL);
 
   for (const auto & dice: {4, 6, 8, 10, 12}) {
-    sizer->Add(initDicePanel(panel, wxID_ANY, dice), 1, wxEXPAND);
+    sizer->Add(new DicePanel(panel, wxID_ANY, dice), 1, wxEXPAND);
   }
 
   panel->SetSizerAndFit(sizer);

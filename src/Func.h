@@ -1,5 +1,5 @@
-#ifndef ROLL_CALC__ROLL_CALC_FUNC_H
-#define ROLL_CALC__ROLL_CALC_FUNC_H
+#ifndef ROLL_CALC__FUNC_H
+#define ROLL_CALC__FUNC_H
 
 #include <numeric>
 #include <map>
@@ -95,4 +95,4 @@ probability(const Dice<Point, Count, ProbWeight> & dice, Predicate pred)
 
 } // namespace roll_calc
 
-#endif // ROLL_CALC__ROLL_CALC_FUNC_H
+#endif // ROLL_CALC__FUNC_H

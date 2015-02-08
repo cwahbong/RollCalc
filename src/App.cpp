@@ -4,14 +4,14 @@
 
 namespace roll_calc {
 
-class RollCalcApp: public wxApp
+class App: public wxApp
 {
 public:
   virtual bool OnInit();
 };
 
 bool
-RollCalcApp::OnInit()
+App::OnInit()
 {
   if (!wxApp::OnInit()) {
     return false;
@@ -26,4 +26,4 @@ RollCalcApp::OnInit()
 } // namespace roll_calc
 
 // This implements the main function.
-IMPLEMENT_APP(roll_calc::RollCalcApp);
+IMPLEMENT_APP(roll_calc::App);

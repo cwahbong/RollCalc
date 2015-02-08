@@ -1,5 +1,5 @@
-#ifndef ROLL_CALC__ROLL_CALC_UTIL_H
-#define ROLL_CALC__ROLL_CALC_UTIL_H
+#ifndef ROLL_CALC__UTIL_H
+#define ROLL_CALC__UTIL_H
 
 #include <wx/window.h>
 
@@ -15,4 +15,4 @@ FindWxWindowById(int id, const wxWindow * parent = 0)
 
 } // namespace roll_calc
 
-#endif // ROLL_CALC__ROLL_CALC_UTIL_H
+#endif // ROLL_CALC__UTIL_H
